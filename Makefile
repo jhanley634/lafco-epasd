@@ -19,8 +19,9 @@ install: $(ENV_DIR)
 	$(ACTIVATE) && pip install --upgrade pip
 	$(ACTIVATE) && bin/version_audit.py
 
+STRICT = --strict --warn-unreachable --ignore-missing-imports --no-namespace-packages
 lint:
 	$(ACTIVATE) && black . && isort . && ruff check
-	$(ACTIVATE) && mypy --strict .
+	$(ACTIVATE) && mypy $(STRICT) .
 
 .PHONY: install venv
