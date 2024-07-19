@@ -15,8 +15,9 @@ def _get_requirements(reqs_in_file: Path) -> Generator[tuple[str, str], None, No
     line_re = re.compile(r"^(?P<name>[\w-]+)\s*>=\s*(?P<version>[\d.]+)")
 
     for line in reqs_in_file.read_text().splitlines():
-        if m := line_re.search(line):
-            yield m[1], m[2]
+        m = line_re.search(line)
+        assert m, line
+        yield m[1], m[2]
 
 
 @dataclass
