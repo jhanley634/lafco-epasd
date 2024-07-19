@@ -5,7 +5,7 @@ from pathlib import Path
 import pandas as pd
 import typer
 
-from lib.util import fingerprint
+from lib.util import clean_column_names, fingerprint
 
 CSV_DIR = Path("~/Desktop/lafco").expanduser()
 
@@ -26,7 +26,7 @@ def get_protest() -> pd.DataFrame:
     assert (353_809, "3acdad47") == fingerprint(protest_csv), fingerprint(protest_csv)
     protest = pd.read_csv(protest_csv)
     assert (4273, 6) == protest.shape
-    return protest
+    return clean_column_names(protest)
 
 
 def report() -> None:
