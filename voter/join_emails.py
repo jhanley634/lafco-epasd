@@ -1,5 +1,6 @@
 #! /usr/bin/env python
 # Copyright 2024 John Hanley. MIT licensed.
+from collections import defaultdict
 from pathlib import Path
 
 import pandas as pd
@@ -21,6 +22,17 @@ def get_voter() -> pd.DataFrame:
     return voter
 
 
+def _get_contacts(voter: pd.DataFrame) -> tuple[dict[str, str], dict[str, str]]:
+    voter = voter.fillna("")
+    addr_to_phone: dict[str, str] = defaultdict(str)
+    addr_to_email: dict[str, str] = defaultdict(str)
+    for row in voter.itertuples():
+        addr = f"{row.addr}"
+        addr_to_phone[addr] = addr_to_phone[addr] or f"{row.phone}"
+        addr_to_email[addr] = addr_to_email[addr] or f"{row.email}"
+    return addr_to_phone, addr_to_email
+
+
 def get_protest() -> pd.DataFrame:
     protest_csv = CSV_DIR / "2024-05-21_qry_EPASD_APNs_Landowner_Protests.csv"
     assert (353_809, "3acdad47") == fingerprint(protest_csv), fingerprint(protest_csv)
@@ -33,14 +45,11 @@ def get_protest() -> pd.DataFrame:
 def report() -> None:
     voter = get_voter()
     voter["addr"] = voter.ResidenceAddress.str.rstrip().str.upper()
-    voter = voter.dropna(subset=["addr"])
-    assert 9679 == len(voter), len(voter)
-    voter = voter.drop_duplicates(subset=["addr"])
-    assert 4574 == len(voter), len(voter)
     voter = voter.rename(columns={"PhoneNumber": "phone"})
     voter = voter.rename(columns={"EmailAddress": "email"})
     voter["email"] = voter.email.str.lower()
     voter = voter[["addr", "phone", "email"]]
+    addr_to_phone, addr_to_email = _get_contacts(voter)
 
     protest = get_protest()
     protest = protest.rename(columns={"epa_address": "addr"})
@@ -48,13 +57,15 @@ def report() -> None:
     assert 4162 == len(protest), len(protest)
     protest = protest.drop_duplicates(subset=["addr"])
     assert 3664 == len(protest), len(protest)
-    joined = protest.merge(voter, on="addr", how="left")
+    joined = protest.copy()
+    joined["phone"] = protest.addr.map(lambda addr: addr_to_phone[addr])
+    joined["email"] = protest.addr.map(lambda addr: addr_to_email[addr])
 
     fname = "2024-05-21_qry_EPASD_APNs_Landowner_Protests_with_phone_email.csv"
     fspec = Path("/tmp") / fname
     joined.to_csv(fspec, index=False)
     print(f"Wrote {len(joined)} rows to {fspec}")
-    assert (352265, "d9db9ebf") == fingerprint(fspec), fingerprint(fspec)
+    assert (377_083, "463771c6") == fingerprint(fspec), fingerprint(fspec)
 
 
 if __name__ == "__main__":
