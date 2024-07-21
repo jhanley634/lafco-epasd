@@ -26,7 +26,8 @@ def get_protest() -> pd.DataFrame:
     assert (353_809, "3acdad47") == fingerprint(protest_csv), fingerprint(protest_csv)
     protest = pd.read_csv(protest_csv)
     assert (4273, 6) == protest.shape
-    return clean_column_names(protest)
+    protest = clean_column_names(protest)
+    return protest
 
 
 def report() -> None:

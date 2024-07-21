@@ -2,7 +2,6 @@
 import re
 from hashlib import file_digest, sha3_224
 from pathlib import Path
-from typing import Any
 
 import pandas as pd
 
@@ -25,5 +24,5 @@ def _clean_column_name(name: str) -> str:
     return name
 
 
-def clean_column_names(df: pd.DataFrame) -> Any:
+def clean_column_names(df: pd.DataFrame) -> pd.DataFrame:
     return df.rename(columns={col: _clean_column_name(col) for col in df.columns})
