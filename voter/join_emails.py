@@ -33,6 +33,10 @@ def get_protest() -> pd.DataFrame:
 def report() -> None:
     voter = get_voter()
     voter["addr"] = voter.ResidenceAddress.str.rstrip().str.upper()
+    voter = voter.dropna(subset=["addr"])
+    assert 9679 == len(voter), len(voter)
+    voter = voter.drop_duplicates(subset=["addr"])
+    assert 4574 == len(voter), len(voter)
     voter = voter.rename(columns={"PhoneNumber": "phone"})
     voter = voter.rename(columns={"EmailAddress": "email"})
     voter["email"] = voter.email.str.lower()
@@ -40,13 +44,17 @@ def report() -> None:
 
     protest = get_protest()
     protest = protest.rename(columns={"epa_address": "addr"})
+    protest = protest.dropna(subset=["addr"])
+    assert 4162 == len(protest), len(protest)
+    protest = protest.drop_duplicates(subset=["addr"])
+    assert 3664 == len(protest), len(protest)
     joined = protest.merge(voter, on="addr", how="left")
 
     fname = "2024-05-21_qry_EPASD_APNs_Landowner_Protests_with_phone_email.csv"
     fspec = Path("/tmp") / fname
     joined.to_csv(fspec, index=False)
     print(f"Wrote {len(joined)} rows to {fspec}")
-    assert (836259, "3a3dcd0a") == fingerprint(fspec), fingerprint(fspec)
+    assert (352265, "d9db9ebf") == fingerprint(fspec), fingerprint(fspec)
 
 
 if __name__ == "__main__":
