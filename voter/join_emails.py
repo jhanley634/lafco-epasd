@@ -1,5 +1,6 @@
 #! /usr/bin/env python
 # Copyright 2024 John Hanley. MIT licensed.
+import re
 from collections import defaultdict
 from pathlib import Path
 
@@ -42,6 +43,25 @@ def get_protest() -> pd.DataFrame:
     return protest
 
 
+def get_assessor() -> pd.DataFrame:
+    assessor_csv = CSV_DIR / "assessor-june-24th.csv"
+    assert (1291573, "0c55d6ea") == fingerprint(assessor_csv), fingerprint(assessor_csv)
+    assessor = pd.read_csv(assessor_csv, dtype={"APN": str})
+    assert (4285, 38) == assessor.shape
+    assessor = assessor.dropna(axis=1, how="all")  # 5 columns are uninformative
+    assessor = clean_column_names(assessor)
+    assessor["apn"] = assessor.apn.map(_apn_with_dashes)
+    return assessor
+
+
+nine_digits_re = re.compile(r"^\d{9}$")
+
+
+def _apn_with_dashes(apn: str) -> str:
+    assert nine_digits_re.search(apn), apn
+    return f"{apn[:3]}-{apn[3:6]}-{apn[6:]}"
+
+
 def report() -> None:
     voter = get_voter()
     voter["addr"] = voter.ResidenceAddress.str.rstrip().str.upper()
@@ -51,11 +71,24 @@ def report() -> None:
     voter = voter[["addr", "phone", "email"]]
     addr_to_phone, addr_to_email = _get_contacts(voter)
 
+    assessor = get_assessor()[
+        [
+            "apn",
+            "situsno1",
+            "situsdirection",
+            "situsstreet",
+            "situsstreettype",
+            "situsstreetbox",
+            "situscity",
+        ]
+    ]
+
     protest = get_protest()
     protest = protest.rename(columns={"epa_address": "addr"})
     protest = protest.dropna(subset=["addr"])
     assert 4162 == len(protest), len(protest)
     protest = protest.drop_duplicates(subset=["addr"])
+    protest = protest.merge(assessor, on="apn", how="left")
     assert 3664 == len(protest), len(protest)
     joined = protest.copy()
     joined["phone"] = protest.addr.map(lambda addr: addr_to_phone[addr])
@@ -65,7 +98,7 @@ def report() -> None:
     fspec = Path("/tmp") / fname
     joined.to_csv(fspec, index=False)
     print(f"Wrote {len(joined)} rows to {fspec}")
-    assert (377_083, "463771c6") == fingerprint(fspec), fingerprint(fspec)
+    assert (494753, "67d97b25") == fingerprint(fspec), fingerprint(fspec)
 
 
 if __name__ == "__main__":

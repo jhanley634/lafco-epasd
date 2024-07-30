@@ -17,7 +17,7 @@ def fingerprint(in_file: Path, nybbles: int = 8) -> tuple[int, str]:
 
 def _clean_column_name(name: str) -> str:
     """Converts raw multi-word column name to a clean identifier."""
-    xlate = str.maketrans(" ./", "___", "()?")
+    xlate = str.maketrans(" ./:", "____", "()?")
     name = name.replace("$", "").strip().translate(xlate).lower()
     name = re.sub(r"__+", "_", name)
     assert re.search(r"^[a-z0-9_]+$", name), name
